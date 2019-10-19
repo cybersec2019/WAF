@@ -1,8 +1,8 @@
 import socket
 import time
 import threading
-from HashTable import HashTable
-from PacketFormatter import PacketFormatter
+from .HashTable import HashTable
+from .PacketFormatter import PacketFormatter
 
 pf = PacketFormatter()
 hs = HashTable()
@@ -12,7 +12,7 @@ fanOutRateDict = {}
 threatDict = {}
 averageFanoutDict = {}
 
-def main():
+def PS_Detector():
 	snifferThread = threading.Thread(name='sniffer', target=sniffer)
 	deleteThread = threading.Thread(name='deleteOldRecords', target=deleteOldRecords)
 	printAverageThread = threading.Thread(name='printAverage', target=printAverage)
@@ -156,5 +156,3 @@ def deleteOldRecords():
                     print("Old item deleted")
                     break
 
-
-main()
