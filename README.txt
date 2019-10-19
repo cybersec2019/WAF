@@ -1,4 +1,5 @@
-Project goal:
+<h1>Project goal</h1>:
+<p>
 Basic functionality:
 - Our WAF will intercept the http(s) calls, extract requests / response body,
 analyze them, and act accordingly (drop/report/forward).
@@ -18,3 +19,4 @@ Folder structure:
 Running our backend server
 -Test.py
 Unit test
+</p>
