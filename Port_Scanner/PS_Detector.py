@@ -4,6 +4,9 @@ import threading
 from .HashTable import HashTable
 from .PacketFormatter import PacketFormatter
 
+#Need to write suspicious ip addr to port_scanner_ban_ip_addr.txt
+#
+
 pf = PacketFormatter()
 hs = HashTable()
 stop_threads = False
@@ -20,12 +23,6 @@ def PS_Detector():
 	deleteThread.start()
 	printAverageThread.start()
 	print("running...")
-	
-	while True:
-		userInput = input("Type 'quit' to stop Port Scanner Detector.")
-		if userInput == "quit":
-			stop_threads = True
-			break
 
 	snifferThread.join()
 	deleteThread.join()
