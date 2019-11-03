@@ -1,0 +1,16 @@
+WAF 1.0
+# Identify if an ip is bad or not (Scoring system)
+        # Blacklist IP database from the Internet(Can you on this? Andrew)
+        # Check if request is legit and then forward it to our client application
+        # Use blackListIPaddr function (Done, Need to create a admin page for this, create a database for this)
+        # Use Geolocation function (Done)
+        # Prevent path traversal
+        # Prevent malicious headers and body
+        # LOG IP ADDRESS (Done, but if we want to scale, need to override this function)
+        # Prevent nmap, sql injection, port scanner (Wait for Andrew)
+        # Restrictive port access
+        # ALERT TO SUBSCRIBER TO TAKE ACTION EITHER BY EMAIL OR PHONE (Need to create rule for this)
+        # ADVANCE STUFF:
+        # USE MACHINE LEARNING TO RECOGNIZE MALICIOUS ACTION
+        # FIND A WAY TO OPTIMIZE OVERHEAD AND MAKE APPLICATION RUN SMOOTHLY MEANING FAST TRANSACTION TIME
+        # REFERENCE: https://docs.python.org/3.4/library/http.server.html
