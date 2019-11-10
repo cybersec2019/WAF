@@ -6,6 +6,7 @@ dirname = os.path.dirname(__file__)
 # 0 is not allowed
 # 1 is allowed
 def GeoLocationBanIP(ipaddr):
+    print(ipaddr)
     g = geocoder.ip(ipaddr)
     country = (g.json["country"])
     print(country)
@@ -31,7 +32,9 @@ def UserBanIpAddr(ipaddr):
     print("This ip is allowed")
     return 1
 
+
 def banPortScannerIP(ipaddr):
+    #Contain previous port scanner people
     # Read file from user
     filepath = os.path.join(dirname, '../static/port_scanner_ban_ip_addr.txt')
     with open(filepath) as fp:
