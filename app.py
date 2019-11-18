@@ -11,8 +11,16 @@ import simplejson
 from urllib.parse import unquote
 import socket
 import logging
+from Port_Scanner.example import *
+import time
+from pymongo import MongoClient
+from database.model import *
 app = Flask(__name__)
 
+from mongoengine import connect
+
+#Connect to WAF database
+connect('WAF')
 #TODO:
 # YOU CAN USE CURL OR BURP OR ANY SOFTWARE THAT SUITE YOU TO TEST WAF
 #Handle GET , HEAD , POST request
@@ -35,13 +43,12 @@ class S(BaseHTTPRequestHandler):
 # We need different rule and different analyst technique for each individual REQUEST METHOD
 # We will strongly focus on GET AND POST Request
     def do_GET(self):
-
+        #Ingoing request from internet user
         #Code number convention:
         #(1 is allowed, 0 is not allow)
         #TODO:
         # Identify if an ip is bad or not (Scoring system)
-        #
-        # Blacklist IP database from the Internet
+        # Blacklist IP database from the Internet ( thinking about this)
         # Check if request is legit and then forward it to our client application
         # Use blackListIPaddr function (Done, Need to create a admin page for this, create a database for this)
         # Use Geolocation function (Done)
@@ -81,6 +88,28 @@ class S(BaseHTTPRequestHandler):
 
         #Port_Scanner
 
+        # Log to database for traffic monitoring
+        header = Header(
+            ip=self.client_address[0],
+            port=self.client_address[1],
+            requestType=self.command,
+            path=self.path
+        )
+        header.save()
+        #End log to database
+
+        #Check this ip address against our black list ipadrr
+        for badip in Badip.objects:
+            if self.client_address[0] == badip.ip:
+                self.send_response(404)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                self.wfile.write(self._html("Dude, you messed up with the wrong engine, LynxServer"))
+                #Drop this traffic here
+                return
+        print("end bad ip")
+        #End check against our blacklist ip addrr
+
         #Process malicious path
         #This is one of the example, I need a way to make it general
         if self.path == "/This+is+suspicious+code":
@@ -89,19 +118,27 @@ class S(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(self._html("Dude, you messed up with the wrong engine, LynxServer"))
             return
-            #Drop this traffic here
+        #End process malicious path
+
+        #Drop traffic if it is illegal here
         #print(self.headers)
         #forward this request to our web client
         #Redirect customer to github.com right away
         #Redirect to url
         #Origin need to be from this IP address (White list )
+        # End Drop traffic if it is illegal here
 
+        #If traffic is legal, let it go here
+
+        #Send traffic to our client aplication
         url = 'http://localhost:3000'
         response = requests.get(url + self.path)
         print(response.url)
         self._set_headers()
-        self.wfile.write(response.text.encode("utf-8"))
 
+        #Outgoing back to internet's user
+        self.wfile.write(response.text.encode("utf-8"))
+        #End forward request
         return
 
     def do_POST(self):
@@ -121,6 +158,15 @@ class S(BaseHTTPRequestHandler):
         # FIND A WAY TO OPTIMIZE OVERHEAD AND MAKE APPLICATION RUN SMOOTHLY MEANING FAST TRANSACTION TIME
         # REFERENCE: https://docs.python.org/3.4/library/http.server.html
 
+        #Ingoing request from internet user
+        #Log to database for traffic monitoring
+        header = Header(
+            ip=self.client_address[0],
+            port=self.client_address[1],
+            requestType=self.command,
+            path=self.path
+        )
+        header.save()
         # Port_Scanner
         content_len = int(self.headers.get('Content-Length'))
         post_body = self.rfile.read(content_len).decode("utf-8")
@@ -136,7 +182,7 @@ class S(BaseHTTPRequestHandler):
             i = i.split("=")
             if len(i) == 1:
                 i.append('')
-            if len(i[1]) >= 345:
+            if len(i[1]) >= 345: #Submited string is more than 345
                 continue
             data.update({i[0]: i[1]})
 
@@ -144,6 +190,7 @@ class S(BaseHTTPRequestHandler):
         response = requests.post(url + self.path, data=data)
 
         self._set_headers()
+        #Outgoing response back to internet user
         self.wfile.write(response.text.encode("utf-8"))
         #Get form data
         #Send this form data to github
@@ -161,6 +208,11 @@ def run(server_class=HTTPServer, handler_class=S):
     server_address = (current_addr, port)
     httpd = server_class(server_address, handler_class)
     print("Server is running on port {0}".format(port))
+    #Run port_scanner here, I need an ip address and also run in the background
+    #Need this guy in transport layer, listen to
+
+    #Run web server here
+    #
     httpd.serve_forever()
 
 if __name__ == "__main__":
@@ -168,4 +220,5 @@ if __name__ == "__main__":
     #They will build more sophisticated log file
     #sys.stderr = open('var/log/event.txt', 'w', buffer)
     #
+    PS_detector_example()
     run()
