@@ -14,5 +14,10 @@ class Header(Document):
 #We want to see traffic coming through our monitor dashboard
 
 #Badip collection
-class Badip(Document):
+class Badips(Document):
     ip = StringField(required=True, max_length=15)
+    v = IntField(db_field='__v')
+#Whitelistip collection
+class Whitelistips(Document):
+    ip = StringField(required=True, max_length=15)
+    v = IntField(db_field='__v')

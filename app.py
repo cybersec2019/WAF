@@ -6,15 +6,14 @@ import sys
 import logging
 from notification.mailNotification import *
 import webbrowser
+
 import requests
-import simplejson
 from urllib.parse import unquote
 import socket
-import logging
-from Port_Scanner.example import *
 import time
 from pymongo import MongoClient
 from database.model import *
+from http import cookies
 app = Flask(__name__)
 
 from mongoengine import connect
@@ -24,19 +23,40 @@ connect('WAF')
 #TODO:
 # YOU CAN USE CURL OR BURP OR ANY SOFTWARE THAT SUITE YOU TO TEST WAF
 #Handle GET , HEAD , POST request
-#
+
+
+def setup_logger(name, log_file, level=logging.INFO):
+    """To setup as many loggers as you want"""
+
+    handler = logging.FileHandler(log_file)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(handler)
+
+    return logger
+
+
 class S(BaseHTTPRequestHandler):
+
+    log_file = setup_logger('log','logfile.log')
+    input_file = setup_logger('log','input.log')
+
     def _set_headers(self):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-
+    def _re_directs(self):
+        self.send_response(302)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
     def _html(self, message):
         """This just generates an HTML document that includes `message`
         in the body. Override, or re-write this do do more interesting stuff.
         """
         content = f"<html><body><h1>{message}</h1></body></html>"
         return content.encode("utf8")  # NOTE: must return a bytes object!
+
 #TODO:
 # Create rule and analyze for GET request
 # Create rule and analyze for POST request
@@ -64,7 +84,7 @@ class S(BaseHTTPRequestHandler):
         # FIND A WAY TO OPTIMIZE OVERHEAD AND MAKE APPLICATION RUN SMOOTHLY MEANING FAST TRANSACTION TIME
         # REFERENCE: https://docs.python.org/3.4/library/http.server.html
         #We know this is GET /path
-        #print(self.path)
+
         #This is only for test
         #Analyze path
         #Analyze ip address
@@ -86,7 +106,6 @@ class S(BaseHTTPRequestHandler):
         #if not GeoLocationBanIP(self.client_address[0]):
             #return
 
-        #Port_Scanner
 
         # Log to database for traffic monitoring
         header = Header(
@@ -97,51 +116,75 @@ class S(BaseHTTPRequestHandler):
         )
         header.save()
         #End log to database
+        '''
+        logging.basicConfig(filename='logfile.log', level=logging.INFO)
+        log_data = {
+            'clientip': self.client_address[0],
+            'clientport': self.client_address[1],
+            'requestType': self.command,
+            'path': self.path,
+        }
+        logging.info(log_data)
+        '''
+        privilege = False
+        #If you have whitelist ip addr, you have privilege to bypass checking zone
 
-        #Check this ip address against our black list ipadrr
-        for badip in Badip.objects:
-            if self.client_address[0] == badip.ip:
+        for whitelistip in Whitelistips.objects:
+
+            print("White list ip:", whitelistip.ip)
+            if self.client_address[0] == whitelistip.ip:
+                privilege = True
+
+        if not privilege:
+            # Check this ip address against our black list ipadrr
+            for badip in Badips.objects:
+                if self.client_address[0] == badip.ip:
+                    self.send_response(404)
+                    self.send_header("Content-type", "text/html")
+                    self.end_headers()
+                    self.wfile.write(self._html("Dude, you blocked from LynxServer"))
+                    #Drop this traffic here
+                    return
+            print("end bad ip section")
+            #End check against our blacklist ip addrr
+
+            #Process malicious path
+            #This is one of the example, I need a way tclo make it general
+            #One line of code here and check it all(machine learning)
+
+            if self.path == "/This+is+suspicious+code":
                 self.send_response(404)
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
                 self.wfile.write(self._html("Dude, you messed up with the wrong engine, LynxServer"))
-                #Drop this traffic here
                 return
-        print("end bad ip")
-        #End check against our blacklist ip addrr
+            #End process malicious path
 
-        #Process malicious path
-        #This is one of the example, I need a way to make it general
-        if self.path == "/This+is+suspicious+code":
-            self.send_response(404)
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
-            self.wfile.write(self._html("Dude, you messed up with the wrong engine, LynxServer"))
-            return
-        #End process malicious path
+            #Drop traffic if it is illegal here
+            #print(self.headers)
+            #forward this request to our web client
+            #Redirect customer to github.com right away
+            #Redirect to url
+            #Origin need to be from this IP address (White list )
+            # End Drop traffic if it is illegal here
 
-        #Drop traffic if it is illegal here
-        #print(self.headers)
-        #forward this request to our web client
-        #Redirect customer to github.com right away
-        #Redirect to url
-        #Origin need to be from this IP address (White list )
-        # End Drop traffic if it is illegal here
-
-        #If traffic is legal, let it go here
+            #If traffic is legal, let it go here
 
         #Send traffic to our client aplication
         url = 'http://localhost:3000'
+        #Find a way to not hardcoded this
+        #cookies = {'logged': '5dc3385173801b38680e679c'}
+        #cookies={"logged":"12345"}
         response = requests.get(url + self.path)
-        print(response.url)
         self._set_headers()
-
+        #Do not let it redirect
         #Outgoing back to internet's user
         self.wfile.write(response.text.encode("utf-8"))
         #End forward request
         return
 
     def do_POST(self):
+        global C
         #TODO:
         # Check if request is legit and then forward it to our client application
         # USe blackListIPaddr function
@@ -172,26 +215,42 @@ class S(BaseHTTPRequestHandler):
         post_body = self.rfile.read(content_len).decode("utf-8")
         #Convert this to json and send to github for authentication
         #Check for SQL injection
-        logging.basicConfig(filename='sqlinjection.log', level=logging.DEBUG)
-        logging.debug(post_body)
 
+
+        logging.basicConfig(filename='logfile.log',level=logging.INFO)
+        log_data={
+            'clientip': self.client_address[0],
+            'clientport': self.client_address[1],
+            'requestType': self.command,
+            'path': self.path,
+            'post_body': {post_body}
+        }
+        logging.info(log_data)
+
+        logging.basicConfig(filename='sqlmap.log', level=logging.INFO)
         post_body = unquote(post_body) #url decoded
         post_body = post_body.split("&")
         data = dict()
+
         for i in post_body:
             i = i.split("=")
             if len(i) == 1:
                 i.append('')
             if len(i[1]) >= 345: #Submited string is more than 345
                 continue
+            #Check i[1] here
             data.update({i[0]: i[1]})
+            if len(i[1]) > 0:
+                self.input_file.info(i[1])
+
 
         url = 'http://localhost:3000'
+
         response = requests.post(url + self.path, data=data)
 
         self._set_headers()
-        #Outgoing response back to internet user
         self.wfile.write(response.text.encode("utf-8"))
+
         #Get form data
         #Send this form data to github
         #Whatever order, I will be able to send this data to github
@@ -208,11 +267,10 @@ def run(server_class=HTTPServer, handler_class=S):
     server_address = (current_addr, port)
     httpd = server_class(server_address, handler_class)
     print("Server is running on port {0}".format(port))
-    #Run port_scanner here, I need an ip address and also run in the background
-    #Need this guy in transport layer, listen to
 
     #Run web server here
     #
+
     httpd.serve_forever()
 
 if __name__ == "__main__":
@@ -220,5 +278,4 @@ if __name__ == "__main__":
     #They will build more sophisticated log file
     #sys.stderr = open('var/log/event.txt', 'w', buffer)
     #
-    PS_detector_example()
     run()
