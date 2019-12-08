@@ -13,8 +13,13 @@ class logfile(Document):
 
 #We want to see traffic coming through our monitor dashboard
 
+#Suspicious ip collection
+class Suspiciousips(Document):
+    ip = StringField(required=True, max_length=15)
+    reason = StringField()
+    v = IntField(db_field='__v')
 #Badip collection
-class Badips(Document):
+class Blacklistips(Document):
     ip = StringField(required=True, max_length=15)
     v = IntField(db_field='__v')
 #Whitelistip collection

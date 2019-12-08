@@ -65,6 +65,24 @@ class S(BaseHTTPRequestHandler):
             for j in text:
                 sql_injection_word.append(j)
 
+    def _html_not_found(self):
+        self._set_headers(404)
+        # self.wfile.write(self._html("Dude, you blocked from LynxServer"))
+        with open("static/404.html", 'rb') as fh:
+            html = fh.read()
+            # html = bytes(html, 'utf8')
+            self.wfile.write(html)
+        self.log_format(404, "")
+        return
+    def _html_suspicious_request(self):
+        self._set_headers(404)
+        # self.wfile.write(self._html("Dude, you blocked from LynxServer"))
+        with open("static/error.html", 'rb') as fh:
+            html = fh.read()
+            # html = bytes(html, 'utf8')
+            self.wfile.write(html)
+        self.log_format(404, "")
+        return
 
     def _set_headers(self,res_code):
         self.send_response(res_code)
@@ -90,6 +108,7 @@ class S(BaseHTTPRequestHandler):
         #self.sql_injection_word
         #Need to process path
         #It wil have this form WHERE%20USER%FIND%20SOMETHING
+        print(self.sql_injection_word)
         self.path = (' '.join(self.path.split("%20"))).lower()
         print(self.path)
         count = 0
@@ -97,7 +116,7 @@ class S(BaseHTTPRequestHandler):
         for i in self.sql_injection_word:
             if self.path.find(i.lower()) != -1:
                 count = count + 1
-            if count >= 2:
+            if count >= 3:
                 #Log this request to our sql_injection_attack log
                 return True
         return False
@@ -105,19 +124,60 @@ class S(BaseHTTPRequestHandler):
     def _check_XSS_attack(self):
 
         return False
-    def _check_suspicious_request(self):
-        #Check sql injection
-        #Check XSS attack
-        #Check for header injection
-        #Check for body injection
-        #Check directory traversal
 
+    def _check_header_injecion(self):
+
+        return False
+
+    def _check_body_injection(self):
+
+        return False
+
+    def _check_directory_traversal(self):
+        m = re.search("/\.\.|2%f/",self.path)
+        if m:
+            print("Path traversal detection")
+            return True
+        return False
+    def _check_suspicious_request(self):
+        suspicious_ip_instance = Suspiciousips()
+        #Check sql injection
+        if self._check_sql_injection():
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "SQL injection"
+            suspicious_ip_instance.save()
+            return True
+        #Check XSS attack
+        if self._check_XSS_attack():
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS attack"
+            suspicious_ip_instance.save()
+            return True
+        #Check for header injection
+        if self._check_header_injecion():
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "Header Injection"
+            suspicious_ip_instance.save()
+            return True
+        #Check for body injection
+        if self._check_body_injection():
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "Body Injection"
+            suspicious_ip_instance.save()
+            return True
+        #Check directory traversal
+        if self._check_directory_traversal():
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "Directory traversal"
+            suspicious_ip_instance.save()
+            return True
         return False
 
     # After detect it let sanitize it
     def _sanitize_input(self):
 
         return
+
 
 #TODO:
 # Create rule and analyze for GET request
@@ -126,8 +186,6 @@ class S(BaseHTTPRequestHandler):
 # We will strongly focus on GET AND POST Request
     def do_GET(self):
 
-        if self._check_sql_injection():
-            print("We are under ATTACK")
         #Ingoing request from internet user
         #Code number convention:
         #(1 is allowed, 0 is not allow)
@@ -172,14 +230,23 @@ class S(BaseHTTPRequestHandler):
             #return
 
 
-        # Log to database for traffic monitoring
-        header = logfile(
+
+        # Log client ipaddr, port , request method, path
+        # to database for traffic monitoring and analyzing
+        logfile_instance = logfile(
             ip=self.client_address[0],
             port=self.client_address[1],
             requestType=self.command,
             path=self.path
         )
-        header.save()
+        logfile_instance.save()
+        #Log suspicious ip addr
+        # to suspiciousips
+
+        if self._check_suspicious_request():
+            self._html_suspicious_request()
+            #Log this ip address to suspicious ip address
+            return
 
         privilege = False
         #If you have whitelist ip addr, you have privilege to bypass checking zone
@@ -191,40 +258,12 @@ class S(BaseHTTPRequestHandler):
 
         if not privilege:
             # Check this ip address against our black list ipadrr
-            for badip in Badips.objects:
-                if self.client_address[0] == badip.ip:
-                    self._set_headers(404)
-                    #self.wfile.write(self._html("Dude, you blocked from LynxServer"))
-                    with open("static/error.html", 'rb') as fh:
-                        html = fh.read()
-                        # html = bytes(html, 'utf8')
-                        self.wfile.write(html)
-                    self.log_format(404, "")
-                    #Drop this traffic here
+            for blacklistip in Blacklistips.objects:
+                if self.client_address[0] == blacklistip.ip:
+                    self._html_suspicious_request()
                     return
             print("end bad ip section")
             #End check against our blacklist ip addrr
-
-            #Process malicious path
-            #This is one of the example, I need a way tclo make it general
-            #One line of code here and check it all(machine learning)
-            #Use regular expression for sql injection
-                                    #+
-            if self.path == "/This+is+suspicious+code":
-                print("Get into this is suspicious code")
-                self.send_response(404)
-                self.send_header("Content-type", "text/html")
-                self.end_headers()
-                #self.wfile.write(self._html("Dude, you messed up with the wrong engine, LynxServer"))
-                with open("static/error.html", 'rb') as fh:
-                    html = fh.read()
-                    #html = bytes(html, 'utf8')
-                    self.wfile.write(html)
-
-                self.log_format(404, "")
-
-                return
-            #End process malicious path
 
             #Drop traffic if it is illegal here
             #print(self.headers)
@@ -241,6 +280,9 @@ class S(BaseHTTPRequestHandler):
         #cookies = {'logged': '5dc3385173801b38680e679c'}
         #cookies={"logged":"12345"}
         response = requests.get(url + self.path)
+        if response.status_code == 404:
+            self._html_not_found()
+            return
         self._set_headers(response.status_code)
         #Do not let it redirect
         #Outgoing back to internet's user
@@ -250,7 +292,6 @@ class S(BaseHTTPRequestHandler):
         return
 
     def do_POST(self):
-        global C
         #TODO:
         # Check if request is legit and then forward it to our client application
         # USe blackListIPaddr function
