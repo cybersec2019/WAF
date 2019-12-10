@@ -152,71 +152,32 @@ class S(BaseHTTPRequestHandler):
             return False
     #Check XSS attack
     def _check_body_XSS_attack(self,input):
-        suspicious_ip_instance = Suspiciousips()
+
         if "<IMG_SRC=" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         elif "<b" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         elif "<META HTTP-EQUIV=" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         elif "<body>" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         elif "<div" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         elif "<script>" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         elif "<style>" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         elif "</style>" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         elif "</body>" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         elif ">" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         elif "</script>" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         elif "</style>" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         elif "</style>" in input:
-            suspicious_ip_instance.ip = self.client_address[0]
-            suspicious_ip_instance.reason = "XSS ATTACK"
-            suspicious_ip_instance.save()
             return True
         else:
             return False
@@ -282,6 +243,10 @@ class S(BaseHTTPRequestHandler):
                 count = count + 1
             if count >= 3:
                 # Log this request to our sql_injection_attack log
+                suspicious_ip_instance = Suspiciousips()
+                suspicious_ip_instance.ip = self.client_address[0]
+                suspicious_ip_instance.reason = "SQL injection"
+                suspicious_ip_instance.save()
                 return True
         return False
 
@@ -449,13 +414,16 @@ class S(BaseHTTPRequestHandler):
         body = post_body
 
         #Body sql injection
-        print("Print body=",body)
 
         if self._check_body_sql_injection(body) or self._check_body_XSS_attack(body):
             self._html_suspicious_request()
-            print("XSS detection")
             return
-
+        if self._check_body_XSS_attack(body):
+            suspicious_ip_instance = Suspiciousips()
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
+            return
         post_body = post_body.split("&")
         data = dict()
 
