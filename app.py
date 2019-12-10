@@ -415,7 +415,7 @@ class S(BaseHTTPRequestHandler):
 
         #Body sql injection
 
-        if self._check_body_sql_injection(body) or self._check_body_XSS_attack(body):
+        if self._check_body_sql_injection(body):
             self._html_suspicious_request()
             return
         if self._check_body_XSS_attack(body):
@@ -423,6 +423,7 @@ class S(BaseHTTPRequestHandler):
             suspicious_ip_instance.ip = self.client_address[0]
             suspicious_ip_instance.reason = "XSS ATTACK"
             suspicious_ip_instance.save()
+            self._html_suspicious_request()
             return
         post_body = post_body.split("&")
         data = dict()
