@@ -121,33 +121,102 @@ class S(BaseHTTPRequestHandler):
                 #Log this request to our sql_injection_attack log
                 return True
         return False
+    def _check_XSS_attack(self):
+        if "<IMG_SRC=" in self.path:
+            return True
+        elif "<b" in self.path:
+            return True
+        elif "<META HTTP-EQUIV=" in self.path:
+            return True
+        elif "<body>" in self.path:
+            return True
+        elif "<div" in self.path:
+            return True
+        elif "<script>" in self.path:
+            return True
+        elif "<style>" in self.path:
+            return True
+        elif "</style>" in self.path:
+            return True
+        elif "</body>" in self.path:
+            return True
+        elif ">" in self.path:
+            return True
+        elif "</script>" in self.path:
+            return True
+        elif "</style>" in self.path:
+            return True
+        elif "</style>" in self.path:
+            return True
+        else:
+            return False
     #Check XSS attack
-    def _check_XSS_attack(self,input):
+    def _check_body_XSS_attack(self,input):
+        suspicious_ip_instance = Suspiciousips()
         if "<IMG_SRC=" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         elif "<b" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         elif "<META HTTP-EQUIV=" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         elif "<body>" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         elif "<div" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         elif "<script>" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         elif "<style>" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         elif "</style>" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         elif "</body>" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         elif ">" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         elif "</script>" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         elif "</style>" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         elif "</style>" in input:
+            suspicious_ip_instance.ip = self.client_address[0]
+            suspicious_ip_instance.reason = "XSS ATTACK"
+            suspicious_ip_instance.save()
             return True
         else:
             return False
@@ -382,8 +451,9 @@ class S(BaseHTTPRequestHandler):
         #Body sql injection
         print("Print body=",body)
 
-        if self._check_body_sql_injection(body) or self._check_XSS_attack(body):
+        if self._check_body_sql_injection(body) or self._check_body_XSS_attack(body):
             self._html_suspicious_request()
+            print("XSS detection")
             return
 
         post_body = post_body.split("&")
