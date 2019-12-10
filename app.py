@@ -104,6 +104,7 @@ class S(BaseHTTPRequestHandler):
         return
 
     #We can improve check_sql_injection to reduce false positive and increase accuratecy
+    #This is header check
     def _check_sql_injection(self):
         #self.sql_injection_word
         #Need to process path
@@ -121,9 +122,35 @@ class S(BaseHTTPRequestHandler):
                 return True
         return False
     #Check XSS attack
-    def _check_XSS_attack(self):
-
-        return False
+    def _check_XSS_attack(self,input):
+        if "<IMG_SRC=" in input:
+            return True
+        elif "<b" in input:
+            return True
+        elif "<META HTTP-EQUIV=" in input:
+            return True
+        elif "<body>" in input:
+            return True
+        elif "<div" in input:
+            return True
+        elif "<script>" in input:
+            return True
+        elif "<style>" in input:
+            return True
+        elif "</style>" in input:
+            return True
+        elif "</body>" in input:
+            return True
+        elif ">" in input:
+            return True
+        elif "</script>" in input:
+            return True
+        elif "</style>" in input:
+            return True
+        elif "</style>" in input:
+            return True
+        else:
+            return False
 
     def _check_header_injecion(self):
 
@@ -172,7 +199,26 @@ class S(BaseHTTPRequestHandler):
             suspicious_ip_instance.save()
             return True
         return False
+    #End url header check
+    #Body check
+    def _check_body_sql_injection(self,body):
+        # self.sql_injection_word
+        # Need to process path
+        # It wil have this form WHERE%20USER%FIND%20SOMETHING
+        tempt = (' '.join(body.split("%20"))).lower()
+        print(tempt)
+        count = 0
+        for i in self.sql_injection_word:
+            if tempt.find(i.lower()) != -1:
+                count = count + 1
+            if count >= 3:
+                # Log this request to our sql_injection_attack log
+                return True
+        return False
 
+    def _check_body_xss_injection(self):
+
+        return
     # After detect it let sanitize it
     def _sanitize_input(self):
 
@@ -317,15 +363,28 @@ class S(BaseHTTPRequestHandler):
             path=self.path
         )
         header.save()
-        # Port_Scanner
+
+        #Check url request
+        if self._check_suspicious_request():
+            self._html_suspicious_request()
+            # Log this ip address to suspicious ip address
+            return
+
         content_len = int(self.headers.get('Content-Length'))
         post_body = self.rfile.read(content_len).decode("utf-8")
         #Convert this to json and send to github for authentication
         #Check for SQL injection
 
         post_body = unquote(post_body) #url decoded
-
+        #Check sql injection and XSS
         body = post_body
+
+        #Body sql injection
+        print("Print body=",body)
+
+        if self._check_body_sql_injection(body) or self._check_XSS_attack(body):
+            self._html_suspicious_request()
+            return
 
         post_body = post_body.split("&")
         data = dict()
