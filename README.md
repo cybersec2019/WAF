@@ -7,7 +7,7 @@ analyze them, and act accordingly (drop/report/forward).
 - Detect suspicious ip addresses (addresses making many requests in a short
 period of time)
 - Detect nmap, sqlmap
-- Geolocation detection(Blacklist ip address, etc: North Korea, China,..)
+- Geolocation detection(Blacklist ip address)
 Advance features:
 - Logging
 - Building GUI-based web interface for keyword search and monitoring.
